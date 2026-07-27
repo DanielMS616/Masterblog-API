@@ -353,21 +353,39 @@ def delete_post(post_id):
 def update_post(post_id):
     """Update a post and save the changed data."""
 
-    # Load the current posts from the JSON file.
+    # Load the latest posts from the JSON file.
     posts, load_error = load_posts()
 
+    # Stop the request if the file could not be loaded.
     if load_error:
         return jsonify({
             "error": load_error
         }), 500
 
-    # Search for the requested post.
+    # Search for the post with the requested ID.
     for post in posts:
         if post["id"] == post_id:
-            # Use an empty dictionary if no valid JSON was provided.
+            # Read the optional values from the request body.
+            #
+            # An empty dictionary means that no fields will be changed.
             update_data = request.get_json(silent=True) or {}
 
-            # Keep the old values when no new values were provided.
+            # Validate the date before changing the post.
+            #
+            # The date is optional for an update. It is checked only
+            # when the client actually provides a new date.
+            if (
+                "date" in update_data
+                and not is_valid_date(update_data["date"])
+            ):
+                return jsonify({
+                    "error": (
+                        "The 'date' field must contain a valid date "
+                        "in YYYY-MM-DD format."
+                    )
+                }), 400
+
+            # Keep the current value when a field was not provided.
             post["title"] = update_data.get(
                 "title",
                 post["title"]
@@ -378,16 +396,29 @@ def update_post(post_id):
                 post["content"]
             )
 
-            # Save the complete updated post list.
+            post["author"] = update_data.get(
+                "author",
+                post["author"]
+            )
+
+            post["date"] = update_data.get(
+                "date",
+                post["date"]
+            )
+
+            # Save the complete changed list in posts.json.
             save_error = save_posts(posts)
 
+            # Return HTTP 500 if writing the file failed.
             if save_error:
                 return jsonify({
                     "error": save_error
                 }), 500
 
+            # Return the complete updated post.
             return jsonify(post), 200
 
+    # This point is reached only when the ID does not exist.
     return jsonify({
         "error": f"Post with id {post_id} was not found."
     }), 404
