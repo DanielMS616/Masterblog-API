@@ -200,41 +200,72 @@ def get_posts():
 
 @app.route("/api/posts/search", methods=["GET"])
 def search_posts():
-    """Return posts that match the provided search terms."""
+    """Return posts that contain the provided search term."""
 
-    # Load the current posts from the JSON file.
+    # Load the latest blog posts from the JSON file.
     posts, load_error = load_posts()
 
+    # Stop the request if the file could not be loaded.
     if load_error:
         return jsonify({
             "error": load_error
         }), 500
 
-    # Read the optional search terms from the URL.
-    title_query = request.args.get("title", "")
-    content_query = request.args.get("content", "")
+    # Read the optional search term from the URL.
+    #
+    # Example:
+    # /api/posts/search?search=flask
+    #
+    # If the parameter is missing, an empty string is used.
+    search_query = request.args.get("search", "")
 
-    # Make the search case-insensitive and remove outer spaces.
-    title_query = title_query.strip().lower()
-    content_query = content_query.strip().lower()
+    # Remove unnecessary spaces and make the search
+    # independent of uppercase and lowercase letters.
+    search_query = search_query.strip().lower()
 
+    # Without a search term, return an empty result list.
+    if search_query == "":
+        return jsonify([]), 200
+
+    # Store all matching posts in this list.
     matching_posts = []
 
     # Check every post loaded from the JSON file.
     for post in posts:
+        # Search for the term in the title.
         title_matches = (
-            title_query != ""
-            and title_query in post["title"].lower()
+            search_query in post["title"].lower()
         )
 
+        # Search for the term in the content.
         content_matches = (
-            content_query != ""
-            and content_query in post["content"].lower()
+            search_query in post["content"].lower()
         )
 
-        if title_matches or content_matches:
+        # Search for the term in the author name.
+        author_matches = (
+            search_query in post["author"].lower()
+        )
+
+        # The date is also stored as a string, for example:
+        # "2026-08-03"
+        #
+        # lower() is not necessary for numbers, but using it here
+        # keeps the comparison structure consistent.
+        date_matches = (
+            search_query in post["date"].lower()
+        )
+
+        # A post is included when at least one field matches.
+        if (
+            title_matches
+            or content_matches
+            or author_matches
+            or date_matches
+        ):
             matching_posts.append(post)
 
+    # If nothing matches, matching_posts remains an empty list.
     return jsonify(matching_posts), 200
 
 
