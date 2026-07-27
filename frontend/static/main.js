@@ -8,6 +8,16 @@ window.onload = function() {
         document.getElementById('api-base-url').value = savedBaseUrl;
         loadPosts();
     }
+
+    // Allow the user to start a search by pressing Enter
+    // inside the search field.
+    var searchInput = document.getElementById('search-query');
+
+    searchInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            searchPosts();
+        }
+    });
 };
 
 
@@ -15,30 +25,31 @@ window.onload = function() {
 function showMessage(message, type) {
     var statusMessage = document.getElementById('status-message');
 
-    // Insert the message as text.
+    // Insert the message as normal text.
     statusMessage.textContent = message;
 
-    // Reset the class before applying a new message type.
+    // Reset previous success or error classes.
     statusMessage.className = 'status-message';
 
-    // Add either the success or error class when provided.
+    // Add a new message type when one was provided.
     if (type) {
         statusMessage.classList.add(type);
     }
 }
 
 
-// Convert an API response into JavaScript data and handle errors.
+// Convert an API response into JavaScript data
+// and handle unsuccessful HTTP status codes.
 function handleJsonResponse(response) {
     return response.json().then(data => {
         // response.ok is false for status codes such as
         // 400, 404, and 500.
         if (!response.ok) {
-            // Use the error message returned by the backend.
+            // Prefer the error message returned by the backend.
             var errorMessage = data.error || 'The request failed.';
 
             // The POST endpoint may additionally return a list
-            // containing all missing required fields.
+            // containing missing required fields.
             if (
                 data.missing_fields
                 && data.missing_fields.length > 0
@@ -50,7 +61,7 @@ function handleJsonResponse(response) {
                 );
             }
 
-            // Throwing an error moves execution to .catch().
+            // Move execution to the following .catch() block.
             throw new Error(errorMessage);
         }
 
@@ -59,10 +70,49 @@ function handleJsonResponse(response) {
 }
 
 
+// Display a provided list of blog posts on the page.
+function displayPosts(posts) {
+    var postContainer = document.getElementById(
+        'post-container'
+    );
+
+    // Remove results from the previous request.
+    postContainer.innerHTML = '';
+
+    // Show a short notice when the list is empty.
+    if (posts.length === 0) {
+        postContainer.innerHTML = '<p>No posts found.</p>';
+        return;
+    }
+
+    // Create one HTML element for every post.
+    posts.forEach(post => {
+        var postDiv = document.createElement('div');
+        postDiv.className = 'post';
+
+        postDiv.innerHTML = `
+            <h2>${post.title}</h2>
+
+            <p class="post-meta">
+                By ${post.author} · ${post.date}
+            </p>
+
+            <p>${post.content}</p>
+
+            <button onclick="deletePost(${post.id})">
+                Delete
+            </button>
+        `;
+
+        postContainer.appendChild(postDiv);
+    });
+}
+
+
 // Fetch all posts from the API and display them.
 //
-// The optional successMessage is useful after adding or deleting
-// a post. Otherwise, a general loading message is shown.
+// The optional successMessage is used after creating
+// or deleting a post.
 function loadPosts(successMessage) {
     var baseUrl = document
         .getElementById('api-base-url')
@@ -78,52 +128,25 @@ function loadPosts(successMessage) {
         return;
     }
 
-    // Store the URL so that it is available after reloading.
+    // Store the URL so that it remains available
+    // after reloading the browser page.
     localStorage.setItem('apiBaseUrl', baseUrl);
 
     showMessage('Loading posts...');
 
-    // Send a GET request to the /posts endpoint.
+    // Send a GET request to the normal posts endpoint.
     fetch(baseUrl + '/posts')
         .then(handleJsonResponse)
-        .then(data => {
-            const postContainer = document.getElementById(
-                'post-container'
-            );
+        .then(posts => {
+            displayPosts(posts);
 
-            // Remove posts from a previous request.
-            postContainer.innerHTML = '';
-
-            // Show a message when the API contains no posts.
-            if (data.length === 0) {
-                postContainer.innerHTML = '<p>No posts found.</p>';
-            }
-
-            // Create one HTML element for every returned post.
-            data.forEach(post => {
-                const postDiv = document.createElement('div');
-                postDiv.className = 'post';
-
-                postDiv.innerHTML = `
-                    <h2>${post.title}</h2>
-                    <p class="post-meta">
-                        By ${post.author} · ${post.date}
-                    </p>
-                    <p>${post.content}</p>
-                    <button onclick="deletePost(${post.id})">
-                        Delete
-                    </button>
-                `;
-
-                postContainer.appendChild(postDiv);
-            });
-
-            // Use a specific message after adding or deleting.
+            // Show a specific message after adding or deleting.
             if (successMessage) {
                 showMessage(successMessage, 'success');
             } else {
                 showMessage(
-                    data.length + ' post(s) loaded successfully.',
+                    posts.length
+                    + ' post(s) loaded successfully.',
                     'success'
                 );
             }
@@ -132,6 +155,85 @@ function loadPosts(successMessage) {
             console.error('Error:', error);
             showMessage(error.message, 'error');
         });
+}
+
+
+// Search all supported fields using one general search term.
+function searchPosts() {
+    var baseUrl = document
+        .getElementById('api-base-url')
+        .value
+        .trim();
+
+    var searchQuery = document
+        .getElementById('search-query')
+        .value
+        .trim();
+
+    // Prevent a request without an API URL.
+    if (baseUrl === '') {
+        showMessage(
+            'Please enter the API base URL.',
+            'error'
+        );
+        return;
+    }
+
+    // Require a search term before sending the request.
+    if (searchQuery === '') {
+        showMessage(
+            'Please enter a search term.',
+            'error'
+        );
+        return;
+    }
+
+    // Store the current API URL in local storage.
+    localStorage.setItem('apiBaseUrl', baseUrl);
+
+    showMessage('Searching posts...');
+
+    // encodeURIComponent() safely prepares the entered text
+    // for use inside a URL.
+    var encodedSearchQuery = encodeURIComponent(searchQuery);
+
+    // Example resulting URL:
+    // /api/posts/search?search=daniel
+    fetch(
+        baseUrl
+        + '/posts/search?search='
+        + encodedSearchQuery
+    )
+        .then(handleJsonResponse)
+        .then(posts => {
+            displayPosts(posts);
+
+            if (posts.length === 0) {
+                showMessage(
+                    'No posts matched "'
+                    + searchQuery
+                    + '".'
+                );
+            } else {
+                showMessage(
+                    posts.length
+                    + ' matching post(s) found.',
+                    'success'
+                );
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage(error.message, 'error');
+        });
+}
+
+
+// Clear the search field and display all posts again.
+function clearSearch() {
+    document.getElementById('search-query').value = '';
+
+    loadPosts('Search cleared. All posts are displayed.');
 }
 
 
@@ -161,7 +263,7 @@ function addPost() {
         .getElementById('post-date')
         .value;
 
-    // Prevent sending an incomplete post to the backend.
+    // Prevent sending an incomplete post.
     if (
         postTitle === ''
         || postContent === ''
@@ -194,13 +296,13 @@ function addPost() {
         .then(post => {
             console.log('Post added:', post);
 
-            // Clear the form after the post was created.
+            // Clear the form after successful creation.
             document.getElementById('post-title').value = '';
             document.getElementById('post-content').value = '';
             document.getElementById('post-author').value = '';
             document.getElementById('post-date').value = '';
 
-            // Reload the list and show a specific success message.
+            // Reload the list so that the post appears.
             loadPosts('Post added successfully.');
         })
         .catch(error => {
@@ -217,16 +319,12 @@ function deletePost(postId) {
         .value
         .trim();
 
-    // Open a browser confirmation dialog.
-    //
-    // confirm() returns:
-    // true  -> the user clicked "OK"
-    // false -> the user clicked "Cancel"
+    // Open the browser's confirmation dialog.
     var deletionConfirmed = confirm(
         'Do you really want to delete this post?'
     );
 
-    // Stop the function when the user cancels the deletion.
+    // Stop the function when the user cancels.
     if (!deletionConfirmed) {
         showMessage('Deletion cancelled.');
         return;
@@ -234,7 +332,7 @@ function deletePost(postId) {
 
     showMessage('Deleting post...');
 
-    // Send a DELETE request to the endpoint containing the post ID.
+    // Send the DELETE request to the selected post.
     fetch(baseUrl + '/posts/' + postId, {
         method: 'DELETE'
     })
@@ -242,7 +340,6 @@ function deletePost(postId) {
         .then(data => {
             console.log(data.message);
 
-            // Reload the posts and display a success message.
             loadPosts('Post deleted successfully.');
         })
         .catch(error => {
