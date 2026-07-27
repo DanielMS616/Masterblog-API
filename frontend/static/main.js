@@ -210,15 +210,31 @@ function addPost() {
 }
 
 
-// Send a DELETE request and delete a post.
+// Ask for confirmation and delete the selected post.
 function deletePost(postId) {
     var baseUrl = document
         .getElementById('api-base-url')
         .value
         .trim();
 
+    // Open a browser confirmation dialog.
+    //
+    // confirm() returns:
+    // true  -> the user clicked "OK"
+    // false -> the user clicked "Cancel"
+    var deletionConfirmed = confirm(
+        'Do you really want to delete this post?'
+    );
+
+    // Stop the function when the user cancels the deletion.
+    if (!deletionConfirmed) {
+        showMessage('Deletion cancelled.');
+        return;
+    }
+
     showMessage('Deleting post...');
 
+    // Send a DELETE request to the endpoint containing the post ID.
     fetch(baseUrl + '/posts/' + postId, {
         method: 'DELETE'
     })
@@ -226,7 +242,7 @@ function deletePost(postId) {
         .then(data => {
             console.log(data.message);
 
-            // Reload the list and show a specific success message.
+            // Reload the posts and display a success message.
             loadPosts('Post deleted successfully.');
         })
         .catch(error => {
