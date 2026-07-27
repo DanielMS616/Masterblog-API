@@ -31,9 +31,28 @@ app.register_blueprint(
 )
 
 
+# For now, the blog posts are stored in a Python list.
+# Each post is represented by a dictionary.
+#
+# In addition to the ID, title, and content, every post now also
+# contains an author and a publication date.
+#
+# The date is stored as a string in the format YYYY-MM-DD.
 POSTS = [
-    {"id": 1, "title": "First post", "content": "This is the first post."},
-    {"id": 2, "title": "Second post", "content": "This is the second post."},
+    {
+        "id": 1,
+        "title": "First post",
+        "content": "This is the first post.",
+        "author": "Daniel",
+        "date": "2026-07-20"
+    },
+    {
+        "id": 2,
+        "title": "Second post",
+        "content": "This is the second post.",
+        "author": "Josi",
+        "date": "2026-07-25"
+    }
 ]
 
 
