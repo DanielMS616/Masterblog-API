@@ -135,72 +135,7 @@ def is_valid_date(date_string):
 
 @app.route("/api/posts", methods=["GET"])
 def get_posts():
-    """Return all posts, optionally sorted by title or content."""
-
-    # Load the current posts from the JSON file.
-    posts, load_error = load_posts()
-
-    # Return a server error if the file could not be read correctly.
-    if load_error:
-        return jsonify({
-            "error": load_error
-        }), 500
-
-    # Read the optional sorting parameters from the URL.
-    sort_field = request.args.get("sort")
-    sort_direction = request.args.get("direction")
-
-    # Without sorting parameters, preserve the stored order.
-    if sort_field is None and sort_direction is None:
-        return jsonify(posts), 200
-
-    # A direction cannot be used without a sorting field.
-    if sort_field is None:
-        return jsonify({
-            "error": (
-                "The 'sort' parameter is required when "
-                "'direction' is provided."
-            )
-        }), 400
-
-    # Only the fields required by the current assignment are allowed.
-    if sort_field not in ["title", "content"]:
-        return jsonify({
-            "error": (
-                "Invalid sort field. "
-                "Allowed values are 'title' and 'content'."
-            )
-        }), 400
-
-    # Use ascending order if no direction was provided.
-    if sort_direction is None:
-        sort_direction = "asc"
-
-    # Validate the requested direction.
-    if sort_direction not in ["asc", "desc"]:
-        return jsonify({
-            "error": (
-                "Invalid sort direction. "
-                "Allowed values are 'asc' and 'desc'."
-            )
-        }), 400
-
-    # True means descending and False means ascending.
-    sort_descending = sort_direction == "desc"
-
-    # sorted() creates a new list and leaves the stored order unchanged.
-    sorted_posts = sorted(
-        posts,
-        key=lambda post: post[sort_field].lower(),
-        reverse=sort_descending
-    )
-
-    return jsonify(sorted_posts), 200
-
-
-@app.route("/api/posts/search", methods=["GET"])
-def search_posts():
-    """Return posts that contain the provided search term."""
+    """Return all posts, optionally sorted by a supported field."""
 
     # Load the latest blog posts from the JSON file.
     posts, load_error = load_posts()
@@ -211,62 +146,102 @@ def search_posts():
             "error": load_error
         }), 500
 
-    # Read the optional search term from the URL.
+    # Read the optional sorting parameters from the URL.
     #
     # Example:
-    # /api/posts/search?search=flask
-    #
-    # If the parameter is missing, an empty string is used.
-    search_query = request.args.get("search", "")
+    # /api/posts?sort=author&direction=asc
+    sort_field = request.args.get("sort")
+    sort_direction = request.args.get("direction")
 
-    # Remove unnecessary spaces and make the search
-    # independent of uppercase and lowercase letters.
-    search_query = search_query.strip().lower()
+    # If no sorting parameters were provided, return the posts
+    # in the same order in which they are stored in posts.json.
+    if sort_field is None and sort_direction is None:
+        return jsonify(posts), 200
 
-    # Without a search term, return an empty result list.
-    if search_query == "":
-        return jsonify([]), 200
+    # A sorting direction cannot be used without a sorting field.
+    if sort_field is None:
+        return jsonify({
+            "error": (
+                "The 'sort' parameter is required when "
+                "'direction' is provided."
+            )
+        }), 400
 
-    # Store all matching posts in this list.
-    matching_posts = []
+    # These are the fields that may be used for sorting.
+    allowed_sort_fields = [
+        "title",
+        "content",
+        "author",
+        "date"
+    ]
 
-    # Check every post loaded from the JSON file.
-    for post in posts:
-        # Search for the term in the title.
-        title_matches = (
-            search_query in post["title"].lower()
-        )
+    # Return an error when the requested field is not supported.
+    if sort_field not in allowed_sort_fields:
+        return jsonify({
+            "error": (
+                "Invalid sort field. Allowed values are "
+                "'title', 'content', 'author', and 'date'."
+            )
+        }), 400
 
-        # Search for the term in the content.
-        content_matches = (
-            search_query in post["content"].lower()
-        )
+    # If the client provides a sort field but no direction,
+    # ascending order is used as the default.
+    if sort_direction is None:
+        sort_direction = "asc"
 
-        # Search for the term in the author name.
-        author_matches = (
-            search_query in post["author"].lower()
-        )
+    # Only ascending and descending order are supported.
+    if sort_direction not in ["asc", "desc"]:
+        return jsonify({
+            "error": (
+                "Invalid sort direction. "
+                "Allowed values are 'asc' and 'desc'."
+            )
+        }), 400
 
-        # The date is also stored as a string, for example:
-        # "2026-08-03"
+    # sorted() expects reverse=True for descending order
+    # and reverse=False for ascending order.
+    sort_descending = sort_direction == "desc"
+
+    try:
+        # Dates must be converted into real datetime objects.
         #
-        # lower() is not necessary for numbers, but using it here
-        # keeps the comparison structure consistent.
-        date_matches = (
-            search_query in post["date"].lower()
-        )
+        # This ensures that the values are sorted as actual dates
+        # instead of being treated only as normal text.
+        if sort_field == "date":
+            sorted_posts = sorted(
+                posts,
+                key=lambda post: datetime.strptime(
+                    post["date"],
+                    "%Y-%m-%d"
+                ),
+                reverse=sort_descending
+            )
 
-        # A post is included when at least one field matches.
-        if (
-            title_matches
-            or content_matches
-            or author_matches
-            or date_matches
-        ):
-            matching_posts.append(post)
+        else:
+            # Title, content, and author are normal text fields.
+            #
+            # lower() makes the alphabetical sorting independent
+            # of uppercase and lowercase letters.
+            sorted_posts = sorted(
+                posts,
+                key=lambda post: post[sort_field].lower(),
+                reverse=sort_descending
+            )
 
-    # If nothing matches, matching_posts remains an empty list.
-    return jsonify(matching_posts), 200
+    except (KeyError, TypeError, ValueError):
+        # This error can occur if posts.json was manually changed
+        # and contains a missing field or an invalid date.
+        return jsonify({
+            "error": (
+                "The stored posts contain invalid data "
+                "and could not be sorted."
+            )
+        }), 500
+
+    # Return the sorted copy of the post list.
+    #
+    # The order in posts.json itself is not changed.
+    return jsonify(sorted_posts), 200
 
 
 @app.route("/api/posts", methods=["POST"])
