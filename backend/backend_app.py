@@ -29,6 +29,45 @@ def get_posts():
     return jsonify(POSTS)
 
 
+@app.route("/api/posts/search", methods=["GET"])
+def search_posts():
+    """Return posts that match the provided search terms."""
+
+    # Read the optional search terms from the URL.
+    # An empty string is used when a parameter was not provided.
+    title_query = request.args.get("title", "")
+    content_query = request.args.get("content", "")
+
+    # Remove unnecessary spaces and make the search case-insensitive.
+    title_query = title_query.strip().lower()
+    content_query = content_query.strip().lower()
+
+    # Store all matching posts in this list.
+    matching_posts = []
+
+    # Check every existing blog post.
+    for post in POSTS:
+        # A title matches when a title search term was provided
+        # and that term occurs inside the post title.
+        title_matches = (
+            title_query != ""
+            and title_query in post["title"].lower()
+        )
+
+        # The same check is performed for the post content.
+        content_matches = (
+            content_query != ""
+            and content_query in post["content"].lower()
+        )
+
+        # The assignment asks for matches in the title OR the content.
+        if title_matches or content_matches:
+            matching_posts.append(post)
+
+    # An empty list is returned when no matching posts were found.
+    return jsonify(matching_posts), 200
+
+
 @app.route("/api/posts", methods=["POST"])
 def add_post():
     """Create a new blog post and add it to the post list."""
