@@ -24,9 +24,64 @@ def get_next_id():
     return max(existing_ids) + 1
 
 
-@app.route('/api/posts', methods=['GET'])
+@app.route("/api/posts", methods=["GET"])
 def get_posts():
-    return jsonify(POSTS)
+    """Return all blog posts, optionally sorted by title or content."""
+
+    # Read the optional sorting parameters from the URL.
+    sort_field = request.args.get("sort")
+    sort_direction = request.args.get("direction")
+
+    # If neither parameter was provided, return the posts in their
+    # original order, just as the endpoint did before.
+    if sort_field is None and sort_direction is None:
+        return jsonify(POSTS), 200
+
+    # A direction has no meaning without a field to sort by.
+    if sort_field is None:
+        return jsonify({
+            "error": (
+                "The 'sort' parameter is required when "
+                "'direction' is provided."
+            )
+        }), 400
+
+    # Only title and content are allowed as sorting fields.
+    if sort_field not in ["title", "content"]:
+        return jsonify({
+            "error": (
+                "Invalid sort field. "
+                "Allowed values are 'title' and 'content'."
+            )
+        }), 400
+
+    # If a sort field was provided without a direction,
+    # use ascending order as a useful default.
+    if sort_direction is None:
+        sort_direction = "asc"
+
+    # Only ascending and descending order are supported.
+    if sort_direction not in ["asc", "desc"]:
+        return jsonify({
+            "error": (
+                "Invalid sort direction. "
+                "Allowed values are 'asc' and 'desc'."
+            )
+        }), 400
+
+    # reverse=False means ascending order.
+    # reverse=True means descending order.
+    sort_descending = sort_direction == "desc"
+
+    # sorted() creates a new list and does not change the original POSTS
+    # list. lower() makes the alphabetical sorting case-insensitive.
+    sorted_posts = sorted(
+        POSTS,
+        key=lambda post: post[sort_field].lower(),
+        reverse=sort_descending
+    )
+
+    return jsonify(sorted_posts), 200
 
 
 @app.route("/api/posts/search", methods=["GET"])
