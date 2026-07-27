@@ -103,3 +103,11 @@ body {
 .status-message.error {
     color: #b02a37;
 }
+
+.post button {
+    position: static;
+    display: inline-block;
+    width: auto;
+    margin-top: 10px;
+    margin-right: 8px;
+}

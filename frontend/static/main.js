@@ -1,3 +1,10 @@
+// Store the posts that are currently displayed on the page.
+//
+// This allows the Edit button to find the selected post
+// without sending an additional request to the backend.
+var displayedPosts = [];
+
+
 // Function that runs once the window is fully loaded.
 window.onload = function() {
     // Attempt to retrieve the API base URL from local storage.
@@ -76,6 +83,11 @@ function displayPosts(posts) {
         'post-container'
     );
 
+    // Remember the currently displayed posts.
+    //
+    // These may be all posts, search results, or sorted posts.
+    displayedPosts = posts;
+
     // Remove results from the previous request.
     postContainer.innerHTML = '';
 
@@ -99,6 +111,10 @@ function displayPosts(posts) {
 
             <p>${post.content}</p>
 
+            <button onclick="startEditing(${post.id})">
+                Edit
+            </button>
+
             <button onclick="deletePost(${post.id})">
                 Delete
             </button>
@@ -111,8 +127,8 @@ function displayPosts(posts) {
 
 // Fetch all posts from the API and display them.
 //
-// The optional successMessage is used after creating
-// or deleting a post.
+// The optional successMessage is used after creating,
+// updating, or deleting a post.
 function loadPosts(successMessage) {
     var baseUrl = document
         .getElementById('api-base-url')
@@ -140,7 +156,7 @@ function loadPosts(successMessage) {
         .then(posts => {
             displayPosts(posts);
 
-            // Show a specific message after adding or deleting.
+            // Show a specific message after another operation.
             if (successMessage) {
                 showMessage(successMessage, 'success');
             } else {
@@ -324,6 +340,88 @@ function clearSorting() {
 }
 
 
+// Clear all fields belonging to the post form.
+function clearPostForm() {
+    document.getElementById('editing-post-id').value = '';
+    document.getElementById('post-title').value = '';
+    document.getElementById('post-content').value = '';
+    document.getElementById('post-author').value = '';
+    document.getElementById('post-date').value = '';
+}
+
+
+// Switch the form between add mode and edit mode.
+function setEditMode(editModeEnabled) {
+    var addButton = document.getElementById(
+        'add-post-button'
+    );
+
+    var updateButton = document.getElementById(
+        'update-post-button'
+    );
+
+    var cancelButton = document.getElementById(
+        'cancel-edit-button'
+    );
+
+    // In edit mode, Add Post is hidden and the other
+    // two buttons are displayed.
+    addButton.hidden = editModeEnabled;
+    updateButton.hidden = !editModeEnabled;
+    cancelButton.hidden = !editModeEnabled;
+}
+
+
+// Load the selected post into the form.
+function startEditing(postId) {
+    // find() returns the first post with the matching ID.
+    var postToEdit = displayedPosts.find(
+        post => post.id === postId
+    );
+
+    // This should normally not happen, but protects the page
+    // if the displayed data changes unexpectedly.
+    if (!postToEdit) {
+        showMessage(
+            'The selected post could not be found.',
+            'error'
+        );
+        return;
+    }
+
+    // Store the selected post ID in the hidden input field.
+    document.getElementById('editing-post-id').value = postToEdit.id;
+
+    // Copy the current post values into the form.
+    document.getElementById('post-title').value = postToEdit.title;
+    document.getElementById('post-content').value = postToEdit.content;
+    document.getElementById('post-author').value = postToEdit.author;
+    document.getElementById('post-date').value = postToEdit.date;
+
+    // Replace the Add button with the editing buttons.
+    setEditMode(true);
+
+    showMessage(
+        'Editing post with ID '
+        + postToEdit.id
+        + '.',
+        'success'
+    );
+
+    // Place the cursor in the title field.
+    document.getElementById('post-title').focus();
+}
+
+
+// Cancel editing and restore the normal add form.
+function cancelEditing() {
+    clearPostForm();
+    setEditMode(false);
+
+    showMessage('Editing cancelled.');
+}
+
+
 // Send a POST request and create a new post.
 function addPost() {
     var baseUrl = document
@@ -349,6 +447,15 @@ function addPost() {
     var postDate = document
         .getElementById('post-date')
         .value;
+
+    // Prevent a request without an API URL.
+    if (baseUrl === '') {
+        showMessage(
+            'Please enter the API base URL.',
+            'error'
+        );
+        return;
+    }
 
     // Prevent sending an incomplete post.
     if (
@@ -384,13 +491,107 @@ function addPost() {
             console.log('Post added:', post);
 
             // Clear the form after successful creation.
-            document.getElementById('post-title').value = '';
-            document.getElementById('post-content').value = '';
-            document.getElementById('post-author').value = '';
-            document.getElementById('post-date').value = '';
+            clearPostForm();
 
-            // Reload the list so that the post appears.
+            // Reload the list so that the new post appears.
             loadPosts('Post added successfully.');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage(error.message, 'error');
+        });
+}
+
+
+// Send a PUT request and update the selected post.
+function updatePost() {
+    var baseUrl = document
+        .getElementById('api-base-url')
+        .value
+        .trim();
+
+    // Read the post ID from the hidden form field.
+    var postId = document
+        .getElementById('editing-post-id')
+        .value;
+
+    var postTitle = document
+        .getElementById('post-title')
+        .value
+        .trim();
+
+    var postContent = document
+        .getElementById('post-content')
+        .value
+        .trim();
+
+    var postAuthor = document
+        .getElementById('post-author')
+        .value
+        .trim();
+
+    var postDate = document
+        .getElementById('post-date')
+        .value;
+
+    // Prevent a request without an API URL.
+    if (baseUrl === '') {
+        showMessage(
+            'Please enter the API base URL.',
+            'error'
+        );
+        return;
+    }
+
+    // A post ID is required for the PUT endpoint.
+    if (postId === '') {
+        showMessage(
+            'No post has been selected for editing.',
+            'error'
+        );
+        return;
+    }
+
+    // Do not send incomplete post data.
+    if (
+        postTitle === ''
+        || postContent === ''
+        || postAuthor === ''
+        || postDate === ''
+    ) {
+        showMessage(
+            'Please fill in title, content, author, and date.',
+            'error'
+        );
+        return;
+    }
+
+    showMessage('Updating post...');
+
+    // Example endpoint:
+    // /api/posts/3
+    fetch(baseUrl + '/posts/' + postId, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            title: postTitle,
+            content: postContent,
+            author: postAuthor,
+            date: postDate
+        })
+    })
+        .then(handleJsonResponse)
+        .then(updatedPost => {
+            console.log('Post updated:', updatedPost);
+
+            // Restore the normal Add Post form.
+            clearPostForm();
+            setEditMode(false);
+
+            // Reload all posts so that the changes are visible.
+            loadPosts('Post updated successfully.');
         })
         .catch(error => {
             console.error('Error:', error);
@@ -426,6 +627,19 @@ function deletePost(postId) {
         .then(handleJsonResponse)
         .then(data => {
             console.log(data.message);
+
+            // Read the ID of a post that may currently
+            // be open in the edit form.
+            var editingPostId = document
+                .getElementById('editing-post-id')
+                .value;
+
+            // Reset the edit form if the deleted post
+            // was currently being edited.
+            if (editingPostId === String(postId)) {
+                clearPostForm();
+                setEditMode(false);
+            }
 
             loadPosts('Post deleted successfully.');
         })

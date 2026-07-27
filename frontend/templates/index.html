@@ -98,6 +98,11 @@
 
         <div class="input-field">
             <input
+                type="hidden"
+                id="editing-post-id"
+            >
+
+            <input
                 type="text"
                 id="post-title"
                 placeholder="Enter Post Title"
@@ -120,8 +125,27 @@
                 id="post-date"
             >
 
-            <button onclick="addPost()">
+            <button
+                id="add-post-button"
+                onclick="addPost()"
+            >
                 Add Post
+            </button>
+
+            <button
+                id="update-post-button"
+                onclick="updatePost()"
+                hidden
+            >
+                Save Changes
+            </button>
+
+            <button
+                id="cancel-edit-button"
+                onclick="cancelEditing()"
+                hidden
+            >
+                Cancel Edit
             </button>
         </div>
 
@@ -137,6 +161,6 @@
         </div>
     </div>
 
-    <script src="static/main.js"></script>
+    <script src="static/main.js?v=2"></script>
 </body>
 </html>

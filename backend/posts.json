@@ -1,17 +1,10 @@
 [
     {
         "id": 2,
-        "title": "Second post",
-        "content": "This is the second post.",
-        "author": "Josi",
-        "date": "2026-07-25"
-    },
-    {
-        "id": 3,
-        "title": "Updated API post",
-        "content": "Every field has been updated.",
-        "author": "Daniel",
-        "date": "2026-08-03"
+        "title": "2. Second postt",
+        "content": "This is the second post...",
+        "author": "Josiii",
+        "date": "2026-07-27"
     },
     {
         "id": 4,
@@ -26,5 +19,12 @@
         "content": "The Add Post button now sends all required fields.",
         "author": "DD",
         "date": "2026-03-26"
+    },
+    {
+        "id": 6,
+        "title": "Second Poscht",
+        "content": "poscht content",
+        "author": "Josii",
+        "date": "2026-07-27"
     }
 ]
