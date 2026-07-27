@@ -11,27 +11,82 @@ window.onload = function() {
 };
 
 
-// Function to fetch all posts from the API and display them.
-function loadPosts() {
-    // Retrieve the base URL from the input field.
-    var baseUrl = document.getElementById('api-base-url').value;
+// Display a visible status message on the page.
+function showMessage(message, type) {
+    var statusMessage = document.getElementById('status-message');
 
-    // Store the URL so that it is available after reloading the page.
+    // Insert the message as text.
+    statusMessage.textContent = message;
+
+    // Reset the class before applying a new message type.
+    statusMessage.className = 'status-message';
+
+    // Add either the success or error class when provided.
+    if (type) {
+        statusMessage.classList.add(type);
+    }
+}
+
+
+// Convert an API response into JavaScript data and handle errors.
+function handleJsonResponse(response) {
+    return response.json().then(data => {
+        // response.ok is false for status codes such as
+        // 400, 404, and 500.
+        if (!response.ok) {
+            // Use the error message returned by the backend.
+            var errorMessage = data.error || 'The request failed.';
+
+            // The POST endpoint may additionally return a list
+            // containing all missing required fields.
+            if (
+                data.missing_fields
+                && data.missing_fields.length > 0
+            ) {
+                errorMessage += (
+                    ' Missing fields: '
+                    + data.missing_fields.join(', ')
+                    + '.'
+                );
+            }
+
+            // Throwing an error moves execution to .catch().
+            throw new Error(errorMessage);
+        }
+
+        return data;
+    });
+}
+
+
+// Fetch all posts from the API and display them.
+//
+// The optional successMessage is useful after adding or deleting
+// a post. Otherwise, a general loading message is shown.
+function loadPosts(successMessage) {
+    var baseUrl = document
+        .getElementById('api-base-url')
+        .value
+        .trim();
+
+    // Prevent a request without an API URL.
+    if (baseUrl === '') {
+        showMessage(
+            'Please enter the API base URL.',
+            'error'
+        );
+        return;
+    }
+
+    // Store the URL so that it is available after reloading.
     localStorage.setItem('apiBaseUrl', baseUrl);
+
+    showMessage('Loading posts...');
 
     // Send a GET request to the /posts endpoint.
     fetch(baseUrl + '/posts')
-        .then(response => {
-            // response.ok is true for successful HTTP status codes.
-            if (!response.ok) {
-                throw new Error('The posts could not be loaded.');
-            }
-
-            // Convert the JSON response into JavaScript data.
-            return response.json();
-        })
+        .then(handleJsonResponse)
         .then(data => {
-            // Find the container in which the posts are displayed.
             const postContainer = document.getElementById(
                 'post-container'
             );
@@ -39,12 +94,16 @@ function loadPosts() {
             // Remove posts from a previous request.
             postContainer.innerHTML = '';
 
+            // Show a message when the API contains no posts.
+            if (data.length === 0) {
+                postContainer.innerHTML = '<p>No posts found.</p>';
+            }
+
             // Create one HTML element for every returned post.
             data.forEach(post => {
                 const postDiv = document.createElement('div');
                 postDiv.className = 'post';
 
-                // Display all fields returned by the backend.
                 postDiv.innerHTML = `
                     <h2>${post.title}</h2>
                     <p class="post-meta">
@@ -58,20 +117,31 @@ function loadPosts() {
 
                 postContainer.appendChild(postDiv);
             });
+
+            // Use a specific message after adding or deleting.
+            if (successMessage) {
+                showMessage(successMessage, 'success');
+            } else {
+                showMessage(
+                    data.length + ' post(s) loaded successfully.',
+                    'success'
+                );
+            }
         })
         .catch(error => {
-            // Display technical errors in the browser console.
             console.error('Error:', error);
+            showMessage(error.message, 'error');
         });
 }
 
 
-// Function to send a POST request and create a new post.
+// Send a POST request and create a new post.
 function addPost() {
-    // Retrieve the API base URL.
-    var baseUrl = document.getElementById('api-base-url').value;
+    var baseUrl = document
+        .getElementById('api-base-url')
+        .value
+        .trim();
 
-    // Retrieve all values from the post form.
     var postTitle = document
         .getElementById('post-title')
         .value
@@ -98,9 +168,14 @@ function addPost() {
         || postAuthor === ''
         || postDate === ''
     ) {
-        alert('Please fill in title, content, author, and date.');
+        showMessage(
+            'Please fill in title, content, author, and date.',
+            'error'
+        );
         return;
     }
+
+    showMessage('Adding post...');
 
     // Send all four required fields to the backend.
     fetch(baseUrl + '/posts', {
@@ -115,14 +190,7 @@ function addPost() {
             date: postDate
         })
     })
-        .then(response => {
-            // Stop the process if the backend returned an error.
-            if (!response.ok) {
-                throw new Error('The post could not be added.');
-            }
-
-            return response.json();
-        })
+        .then(handleJsonResponse)
         .then(post => {
             console.log('Post added:', post);
 
@@ -132,34 +200,37 @@ function addPost() {
             document.getElementById('post-author').value = '';
             document.getElementById('post-date').value = '';
 
-            // Reload the list so that the new post appears immediately.
-            loadPosts();
+            // Reload the list and show a specific success message.
+            loadPosts('Post added successfully.');
         })
         .catch(error => {
             console.error('Error:', error);
+            showMessage(error.message, 'error');
         });
 }
 
 
-// Function to send a DELETE request and delete a post.
+// Send a DELETE request and delete a post.
 function deletePost(postId) {
-    var baseUrl = document.getElementById('api-base-url').value;
+    var baseUrl = document
+        .getElementById('api-base-url')
+        .value
+        .trim();
 
-    // Send a DELETE request to the endpoint containing the post ID.
+    showMessage('Deleting post...');
+
     fetch(baseUrl + '/posts/' + postId, {
         method: 'DELETE'
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('The post could not be deleted.');
-            }
+        .then(handleJsonResponse)
+        .then(data => {
+            console.log(data.message);
 
-            console.log('Post deleted:', postId);
-
-            // Reload the posts after deleting one.
-            loadPosts();
+            // Reload the list and show a specific success message.
+            loadPosts('Post deleted successfully.');
         })
         .catch(error => {
             console.error('Error:', error);
+            showMessage(error.message, 'error');
         });
 }

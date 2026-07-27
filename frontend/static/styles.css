@@ -89,3 +89,17 @@ body {
 .post button:hover {
     background-color: #cc0000;
 }
+
+.status-message {
+    min-height: 24px;
+    margin: 16px 0;
+    font-weight: 700;
+}
+
+.status-message.success {
+    color: #157347;
+}
+
+.status-message.error {
+    color: #b02a37;
+}
