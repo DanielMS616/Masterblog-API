@@ -1,0 +1,288 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Masterblog API",
+    "description": "RESTful API for managing, searching, and sorting blog posts.",
+    "version": "1.0.0"
+  },
+  "basePath": "/",
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "tags": [
+    {
+      "name": "Posts",
+      "description": "Operations for managing blog posts"
+    }
+  ],
+  "paths": {
+    "/api/posts": {
+      "get": {
+        "summary": "Return all blog posts",
+        "description": "Returns all posts in their original order or sorts them by title or content.",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "description": "Field used for sorting the posts",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "title",
+              "content"
+            ]
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "description": "Direction used for sorting",
+            "required": false,
+            "type": "string",
+            "default": "asc",
+            "enum": [
+              "asc",
+              "desc"
+            ]
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Posts returned successfully",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Post"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid sorting parameters",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new blog post",
+        "description": "Creates a post with an automatically generated integer ID.",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "post",
+            "in": "body",
+            "description": "Title and content of the new post",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewPost"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Post created successfully",
+            "schema": {
+              "$ref": "#/definitions/Post"
+            }
+          },
+          "400": {
+            "description": "Missing or invalid JSON data",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/api/posts/search": {
+      "get": {
+        "summary": "Search for blog posts",
+        "description": "Returns posts whose title or content contains the provided search term.",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "description": "Search term for the post title",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "content",
+            "in": "query",
+            "description": "Search term for the post content",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search completed successfully",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Post"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/posts/{post_id}": {
+      "parameters": [
+        {
+          "name": "post_id",
+          "in": "path",
+          "description": "Integer ID of the blog post",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "put": {
+        "summary": "Update an existing blog post",
+        "description": "Updates the title, content, or both. Missing fields keep their current values.",
+        "tags": [
+          "Posts"
+        ],
+        "parameters": [
+          {
+            "name": "post",
+            "in": "body",
+            "description": "Fields that should be updated",
+            "required": false,
+            "schema": {
+              "$ref": "#/definitions/UpdatePost"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Post updated successfully",
+            "schema": {
+              "$ref": "#/definitions/Post"
+            }
+          },
+          "404": {
+            "description": "Post was not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an existing blog post",
+        "description": "Deletes the blog post with the requested ID.",
+        "tags": [
+          "Posts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Post deleted successfully",
+            "schema": {
+              "$ref": "#/definitions/Message"
+            }
+          },
+          "404": {
+            "description": "Post was not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Post": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "content"
+      ],
+      "properties": {
+        "id": {
+          "type": "integer",
+          "example": 1
+        },
+        "title": {
+          "type": "string",
+          "example": "First post"
+        },
+        "content": {
+          "type": "string",
+          "example": "This is the first post."
+        }
+      }
+    },
+    "NewPost": {
+      "type": "object",
+      "required": [
+        "title",
+        "content"
+      ],
+      "properties": {
+        "title": {
+          "type": "string",
+          "example": "My new post"
+        },
+        "content": {
+          "type": "string",
+          "example": "This post was created through the API."
+        }
+      }
+    },
+    "UpdatePost": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "example": "Updated post title"
+        },
+        "content": {
+          "type": "string",
+          "example": "The post content has been updated."
+        }
+      }
+    },
+    "Message": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "Post with id 1 has been deleted successfully."
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "example": "Post with id 999 was not found."
+        },
+        "missing_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "title",
+            "content"
+          ]
+        }
+      }
+    }
+  }
+}
