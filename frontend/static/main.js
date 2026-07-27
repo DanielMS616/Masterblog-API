@@ -193,12 +193,9 @@ function searchPosts() {
 
     showMessage('Searching posts...');
 
-    // encodeURIComponent() safely prepares the entered text
-    // for use inside a URL.
+    // Safely prepare the search text for use inside a URL.
     var encodedSearchQuery = encodeURIComponent(searchQuery);
 
-    // Example resulting URL:
-    // /api/posts/search?search=daniel
     fetch(
         baseUrl
         + '/posts/search?search='
@@ -234,6 +231,96 @@ function clearSearch() {
     document.getElementById('search-query').value = '';
 
     loadPosts('Search cleared. All posts are displayed.');
+}
+
+
+// Fetch all posts in the selected sorting order.
+function sortPosts() {
+    var baseUrl = document
+        .getElementById('api-base-url')
+        .value
+        .trim();
+
+    // Read the selected field from the first dropdown.
+    var sortField = document
+        .getElementById('sort-field')
+        .value;
+
+    // Read the selected direction from the second dropdown.
+    var sortDirection = document
+        .getElementById('sort-direction')
+        .value;
+
+    // Prevent a request without an API URL.
+    if (baseUrl === '') {
+        showMessage(
+            'Please enter the API base URL.',
+            'error'
+        );
+        return;
+    }
+
+    // The user must select a sorting field.
+    if (sortField === '') {
+        showMessage(
+            'Please select a field to sort by.',
+            'error'
+        );
+        return;
+    }
+
+    // Store the current API URL in local storage.
+    localStorage.setItem('apiBaseUrl', baseUrl);
+
+    showMessage('Sorting posts...');
+
+    // Example resulting URL:
+    // /api/posts?sort=date&direction=desc
+    var sortUrl = (
+        baseUrl
+        + '/posts?sort='
+        + sortField
+        + '&direction='
+        + sortDirection
+    );
+
+    fetch(sortUrl)
+        .then(handleJsonResponse)
+        .then(posts => {
+            displayPosts(posts);
+
+            var directionText;
+
+            if (sortDirection === 'asc') {
+                directionText = 'ascending';
+            } else {
+                directionText = 'descending';
+            }
+
+            showMessage(
+                'Posts sorted by '
+                + sortField
+                + ' in '
+                + directionText
+                + ' order.',
+                'success'
+            );
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage(error.message, 'error');
+        });
+}
+
+
+// Reset the sorting controls and display the stored order.
+function clearSorting() {
+    document.getElementById('sort-field').value = '';
+    document.getElementById('sort-direction').value = 'asc';
+
+    loadPosts(
+        'Sorting cleared. Posts are displayed in stored order.'
+    );
 }
 
 

@@ -55,6 +55,48 @@
         </div>
 
         <div class="input-field">
+            <select id="sort-field">
+                <option value="">
+                    Sort by...
+                </option>
+
+                <option value="title">
+                    Title
+                </option>
+
+                <option value="content">
+                    Content
+                </option>
+
+                <option value="author">
+                    Author
+                </option>
+
+                <option value="date">
+                    Date
+                </option>
+            </select>
+
+            <select id="sort-direction">
+                <option value="asc">
+                    Ascending
+                </option>
+
+                <option value="desc">
+                    Descending
+                </option>
+            </select>
+
+            <button onclick="sortPosts()">
+                Sort Posts
+            </button>
+
+            <button onclick="clearSorting()">
+                Clear Sorting
+            </button>
+        </div>
+
+        <div class="input-field">
             <input
                 type="text"
                 id="post-title"
