@@ -98,5 +98,38 @@ def delete_post(post_id):
     }), 404
 
 
+@app.route("/api/posts/<int:post_id>", methods=["PUT"])
+def update_post(post_id):
+    """Update the blog post with the given ID."""
+
+    # Search through all posts for the requested ID.
+    for post in POSTS:
+        if post["id"] == post_id:
+            # Read the JSON object from the request body.
+            # If no valid JSON was sent, use an empty dictionary.
+            update_data = request.get_json(silent=True) or {}
+
+            # The dictionary method get() returns the new title if it
+            # exists in the JSON data. Otherwise, it returns the old title.
+            post["title"] = update_data.get(
+                "title",
+                post["title"]
+            )
+
+            # The same logic is used for the content.
+            post["content"] = update_data.get(
+                "content",
+                post["content"]
+            )
+
+            # Return the complete updated post.
+            return jsonify(post), 200
+
+    # This part is reached only when no post has the requested ID.
+    return jsonify({
+        "error": f"Post with id {post_id} was not found."
+    }), 404
+
+
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
