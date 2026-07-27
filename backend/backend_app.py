@@ -244,6 +244,62 @@ def get_posts():
     return jsonify(sorted_posts), 200
 
 
+@app.route("/api/posts/search", methods=["GET"])
+def search_posts():
+    """Return posts that contain the provided search term."""
+
+    # Load the latest blog posts from the JSON file.
+    posts, load_error = load_posts()
+
+    # Stop the request if the file could not be loaded.
+    if load_error:
+        return jsonify({
+            "error": load_error
+        }), 500
+
+    # Read the general search term from the URL.
+    #
+    # Example:
+    # /api/posts/search?search=daniel
+    #
+    # If the parameter is missing, an empty string is used.
+    search_query = request.args.get("search", "")
+
+    # Remove unnecessary outer spaces and make the search
+    # independent of uppercase and lowercase letters.
+    search_query = search_query.strip().lower()
+
+    # Without a search term, return an empty result list.
+    if search_query == "":
+        return jsonify([]), 200
+
+    # Store all posts containing the search term.
+    matching_posts = []
+
+    # Check every post loaded from posts.json.
+    for post in posts:
+        # Convert every searchable value into lowercase text.
+        #
+        # get() uses an empty string as a fallback if a field
+        # is unexpectedly missing from a stored post.
+        title = str(post.get("title", "")).lower()
+        content = str(post.get("content", "")).lower()
+        author = str(post.get("author", "")).lower()
+        date = str(post.get("date", "")).lower()
+
+        # One matching field is enough to include the post.
+        if (
+            search_query in title
+            or search_query in content
+            or search_query in author
+            or search_query in date
+        ):
+            matching_posts.append(post)
+
+    # An empty list is returned when no post matches.
+    return jsonify(matching_posts), 200
+
+
 @app.route("/api/posts", methods=["POST"])
 def add_post():
     """Create a new blog post and save it in the JSON file."""

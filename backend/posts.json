@@ -1,16 +1,23 @@
 [
-  {
-    "id": 1,
-    "title": "First post",
-    "content": "This is the first post.",
-    "author": "Daniel",
-    "date": "2026-07-20"
-  },
-  {
-    "id": 2,
-    "title": "Second post",
-    "content": "This is the second post.",
-    "author": "Josi",
-    "date": "2026-07-25"
-  }
+    {
+        "id": 2,
+        "title": "Second post",
+        "content": "This is the second post.",
+        "author": "Josi",
+        "date": "2026-07-25"
+    },
+    {
+        "id": 3,
+        "title": "Updated API post",
+        "content": "Every field has been updated.",
+        "author": "Daniel",
+        "date": "2026-08-03"
+    },
+    {
+        "id": 4,
+        "title": "Swagger documentation test",
+        "content": "This post tests the final Swagger definition.",
+        "author": "DanielMS616",
+        "date": "2026-07-29"
+    }
 ]

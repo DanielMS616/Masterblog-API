@@ -2,7 +2,7 @@
   "swagger": "2.0",
   "info": {
     "title": "Masterblog API",
-    "description": "RESTful API for managing, searching, and sorting blog posts.",
+    "description": "RESTful API for creating, reading, updating, deleting, searching, and sorting blog posts.",
     "version": "1.0.0"
   },
   "basePath": "/",
@@ -14,7 +14,7 @@
   ],
   "tags": [
     {
-      "name": "Posts",
+      "name": "Post",
       "description": "Operations for managing blog posts"
     }
   ],
@@ -22,29 +22,30 @@
     "/api/posts": {
       "get": {
         "summary": "Return all blog posts",
-        "description": "Returns all posts in their original order or sorts them by title or content.",
+        "description": "Returns all posts in their stored order or sorts them by title, content, author, or date.",
         "tags": [
-          "Posts"
+          "Post"
         ],
         "parameters": [
           {
             "name": "sort",
             "in": "query",
-            "description": "Field used for sorting the posts",
+            "description": "Field used to sort the returned posts",
             "required": false,
             "type": "string",
             "enum": [
               "title",
-              "content"
+              "content",
+              "author",
+              "date"
             ]
           },
           {
             "name": "direction",
             "in": "query",
-            "description": "Direction used for sorting",
+            "description": "Sorting direction. Ascending order is used by default when only sort is provided.",
             "required": false,
             "type": "string",
-            "default": "asc",
             "enum": [
               "asc",
               "desc"
@@ -62,7 +63,13 @@
             }
           },
           "400": {
-            "description": "Invalid sorting parameters",
+            "description": "Invalid sorting field or direction",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "The post data could not be loaded or sorted",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -71,15 +78,15 @@
       },
       "post": {
         "summary": "Create a new blog post",
-        "description": "Creates a post with an automatically generated integer ID.",
+        "description": "Creates a new post with an automatically generated integer ID. Title, content, author, and date are required.",
         "tags": [
-          "Posts"
+          "Post"
         ],
         "parameters": [
           {
             "name": "post",
             "in": "body",
-            "description": "Title and content of the new post",
+            "description": "Data for the new blog post",
             "required": true,
             "schema": {
               "$ref": "#/definitions/NewPost"
@@ -94,7 +101,13 @@
             }
           },
           "400": {
-            "description": "Missing or invalid JSON data",
+            "description": "Missing fields, invalid JSON, or invalid date",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "The post data could not be loaded or saved",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -105,34 +118,33 @@
     "/api/posts/search": {
       "get": {
         "summary": "Search for blog posts",
-        "description": "Returns posts whose title or content contains the provided search term.",
+        "description": "Searches title, content, author, and date for the provided term. The search is case-insensitive.",
         "tags": [
-          "Posts"
+          "Post"
         ],
         "parameters": [
           {
-            "name": "title",
+            "name": "search",
             "in": "query",
-            "description": "Search term for the post title",
-            "required": false,
-            "type": "string"
-          },
-          {
-            "name": "content",
-            "in": "query",
-            "description": "Search term for the post content",
+            "description": "Search term used for title, content, author, and date",
             "required": false,
             "type": "string"
           }
         ],
         "responses": {
           "200": {
-            "description": "Search completed successfully",
+            "description": "Search completed successfully. An empty list is returned when nothing matches.",
             "schema": {
               "type": "array",
               "items": {
                 "$ref": "#/definitions/Post"
               }
+            }
+          },
+          "500": {
+            "description": "The post data could not be loaded",
+            "schema": {
+              "$ref": "#/definitions/Error"
             }
           }
         }
@@ -143,16 +155,16 @@
         {
           "name": "post_id",
           "in": "path",
-          "description": "Integer ID of the blog post",
+          "description": "Unique integer ID of the blog post",
           "required": true,
           "type": "integer"
         }
       ],
       "put": {
         "summary": "Update an existing blog post",
-        "description": "Updates the title, content, or both. Missing fields keep their current values.",
+        "description": "Updates title, content, author, date, or any combination of these fields. Fields that are not provided keep their current values.",
         "tags": [
-          "Posts"
+          "Post"
         ],
         "parameters": [
           {
@@ -172,8 +184,20 @@
               "$ref": "#/definitions/Post"
             }
           },
+          "400": {
+            "description": "The provided date is invalid",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
           "404": {
-            "description": "Post was not found",
+            "description": "No post with the requested ID exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "The post data could not be loaded or saved",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -182,9 +206,9 @@
       },
       "delete": {
         "summary": "Delete an existing blog post",
-        "description": "Deletes the blog post with the requested ID.",
+        "description": "Deletes the post with the requested ID from the JSON storage.",
         "tags": [
-          "Posts"
+          "Post"
         ],
         "responses": {
           "200": {
@@ -194,7 +218,13 @@
             }
           },
           "404": {
-            "description": "Post was not found",
+            "description": "No post with the requested ID exists",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "500": {
+            "description": "The post data could not be loaded or saved",
             "schema": {
               "$ref": "#/definitions/Error"
             }
@@ -209,7 +239,9 @@
       "required": [
         "id",
         "title",
-        "content"
+        "content",
+        "author",
+        "date"
       ],
       "properties": {
         "id": {
@@ -218,11 +250,20 @@
         },
         "title": {
           "type": "string",
-          "example": "First post"
+          "example": "Learning Flask APIs"
         },
         "content": {
           "type": "string",
-          "example": "This is the first post."
+          "example": "This post was created through the Masterblog API."
+        },
+        "author": {
+          "type": "string",
+          "example": "Daniel"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "example": "2026-07-27"
         }
       }
     },
@@ -230,16 +271,27 @@
       "type": "object",
       "required": [
         "title",
-        "content"
+        "content",
+        "author",
+        "date"
       ],
       "properties": {
         "title": {
           "type": "string",
-          "example": "My new post"
+          "example": "My new blog post"
         },
         "content": {
           "type": "string",
-          "example": "This post was created through the API."
+          "example": "This is the content of my new blog post."
+        },
+        "author": {
+          "type": "string",
+          "example": "Daniel"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "example": "2026-07-27"
         }
       }
     },
@@ -248,11 +300,20 @@
       "properties": {
         "title": {
           "type": "string",
-          "example": "Updated post title"
+          "example": "Updated blog post title"
         },
         "content": {
           "type": "string",
-          "example": "The post content has been updated."
+          "example": "The content of this post has been updated."
+        },
+        "author": {
+          "type": "string",
+          "example": "DanielMS616"
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "example": "2026-08-01"
         }
       }
     },
@@ -278,8 +339,8 @@
             "type": "string"
           },
           "example": [
-            "title",
-            "content"
+            "author",
+            "date"
           ]
         }
       }
