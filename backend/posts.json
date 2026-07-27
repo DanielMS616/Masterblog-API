@@ -19,5 +19,12 @@
         "content": "This post tests the final Swagger definition.",
         "author": "DanielMS616",
         "date": "2026-07-29"
+    },
+    {
+        "id": 5,
+        "title": "Frontend integration",
+        "content": "The Add Post button now sends all required fields.",
+        "author": "DD",
+        "date": "2026-03-26"
     }
 ]
