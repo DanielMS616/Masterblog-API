@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Optional
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -45,20 +46,74 @@ app.register_blueprint(
 # even when the application is started from the project root.
 POSTS_FILE = Path(__file__).parent / "posts.json"
 
+# A post is represented by a dictionary containing its fields.
+Post = dict[str, Any]
 
-def load_posts():
+
+def is_valid_date(date_string: Any) -> bool:
+    """Check whether a value is a valid date in YYYY-MM-DD format."""
+
+    if not isinstance(date_string, str):
+        return False
+
+    try:
+        # Convert the string into a Python datetime object.
+        #
+        # %Y = four-digit year
+        # %m = two-digit month
+        # %d = two-digit day
+        parsed_date = datetime.strptime(date_string, "%Y-%m-%d")
+
+        # strptime() may accept values without leading zeroes on some
+        # systems. Comparing the formatted date enforces the exact format.
+        return parsed_date.strftime("%Y-%m-%d") == date_string
+
+    except ValueError:
+        # ValueError occurs if the format or date is invalid.
+        return False
+
+
+def is_valid_stored_post(post: Any) -> bool:
+    """Check whether a value has the expected stored post structure."""
+
+    if not isinstance(post, dict):
+        return False
+
+    post_id = post.get("id")
+
+    # bool is a subclass of int in Python, so reject it explicitly.
+    if not isinstance(post_id, int) or isinstance(post_id, bool):
+        return False
+
+    for field in ["title", "content", "author"]:
+        value = post.get(field)
+
+        if not isinstance(value, str) or value.strip() == "":
+            return False
+
+    return is_valid_date(post.get("date"))
+
+
+def load_posts() -> tuple[list[Post], Optional[str]]:
     """Load all blog posts from the JSON file."""
 
     try:
         # Open the JSON file for reading.
         with POSTS_FILE.open("r", encoding="utf-8") as file:
-            posts = json.load(file)
+            loaded_data = json.load(file)
 
-        # The JSON file must contain a list of post dictionaries.
-        if not isinstance(posts, list):
-            return None, "The posts file must contain a JSON list."
+        # The JSON file must contain a list.
+        if not isinstance(loaded_data, list):
+            return [], "The posts file must contain a JSON list."
 
-        # No error occurred.
+        # Every list item must have the expected post structure.
+        if not all(is_valid_stored_post(post) for post in loaded_data):
+            return [], "The posts file contains invalid post data."
+
+        # The structure was checked above, so the list can now be used
+        # as a list of post dictionaries.
+        posts: list[Post] = loaded_data
+
         return posts, None
 
     except FileNotFoundError:
@@ -68,15 +123,15 @@ def load_posts():
 
     except json.JSONDecodeError:
         # This error occurs when the file contains invalid JSON.
-        return None, "The posts file contains invalid JSON."
+        return [], "The posts file contains invalid JSON."
 
     except OSError:
         # This covers other file-reading errors, for example
         # missing permissions.
-        return None, "The posts file could not be read."
+        return [], "The posts file could not be read."
 
 
-def save_posts(posts):
+def save_posts(posts: list[Post]) -> Optional[str]:
     """Save all blog posts to the JSON file."""
 
     try:
@@ -100,7 +155,7 @@ def save_posts(posts):
         return "The posts file could not be saved."
 
 
-def get_next_id(posts):
+def get_next_id(posts: list[Post]) -> int:
     """Return the next available integer ID."""
 
     # If there are no posts yet, start with ID 1.
@@ -114,23 +169,24 @@ def get_next_id(posts):
     return max(existing_ids) + 1
 
 
-def is_valid_date(date_string):
-    """Check whether a value is a valid date in YYYY-MM-DD format."""
+def get_invalid_text_fields(
+    data: Post,
+    fields: list[str]
+) -> list[str]:
+    """Return supplied fields that do not contain non-empty text."""
 
-    try:
-        # Convert the string into a Python datetime object.
-        #
-        # %Y = four-digit year
-        # %m = two-digit month
-        # %d = two-digit day
-        datetime.strptime(date_string, "%Y-%m-%d")
+    invalid_fields = []
 
-        return True
+    for field in fields:
+        if field not in data:
+            continue
 
-    except (TypeError, ValueError):
-        # TypeError occurs if the value is not a string.
-        # ValueError occurs if the format or date is invalid.
-        return False
+        value = data[field]
+
+        if not isinstance(value, str) or value.strip() == "":
+            invalid_fields.append(field)
+
+    return invalid_fields
 
 
 @app.route("/api/posts", methods=["GET"])
@@ -202,45 +258,25 @@ def get_posts():
     # and reverse=False for ascending order.
     sort_descending = sort_direction == "desc"
 
-    try:
-        # Dates must be converted into real datetime objects.
-        #
-        # This ensures that the values are sorted as actual dates
-        # instead of being treated only as normal text.
-        if sort_field == "date":
-            sorted_posts = sorted(
-                posts,
-                key=lambda post: datetime.strptime(
-                    post["date"],
-                    "%Y-%m-%d"
-                ),
-                reverse=sort_descending
-            )
+    # Dates must be converted into real datetime objects.
+    # Text fields are sorted case-insensitively.
+    if sort_field == "date":
+        sorted_posts = sorted(
+            posts,
+            key=lambda post: datetime.strptime(
+                post["date"],
+                "%Y-%m-%d"
+            ),
+            reverse=sort_descending
+        )
+    else:
+        sorted_posts = sorted(
+            posts,
+            key=lambda post: post[sort_field].lower(),
+            reverse=sort_descending
+        )
 
-        else:
-            # Title, content, and author are normal text fields.
-            #
-            # lower() makes the alphabetical sorting independent
-            # of uppercase and lowercase letters.
-            sorted_posts = sorted(
-                posts,
-                key=lambda post: post[sort_field].lower(),
-                reverse=sort_descending
-            )
-
-    except (KeyError, TypeError, ValueError):
-        # This error can occur if posts.json was manually changed
-        # and contains a missing field or an invalid date.
-        return jsonify({
-            "error": (
-                "The stored posts contain invalid data "
-                "and could not be sorted."
-            )
-        }), 500
-
-    # Return the sorted copy of the post list.
-    #
-    # The order in posts.json itself is not changed.
+    # Return the sorted copy. The stored order remains unchanged.
     return jsonify(sorted_posts), 200
 
 
@@ -261,42 +297,29 @@ def search_posts():
     #
     # Example:
     # /api/posts/search?search=daniel
-    #
-    # If the parameter is missing, an empty string is used.
-    search_query = request.args.get("search", "")
-
-    # Remove unnecessary outer spaces and make the search
-    # independent of uppercase and lowercase letters.
-    search_query = search_query.strip().lower()
+    search_query = request.args.get("search", "").strip().lower()
 
     # Without a search term, return an empty result list.
     if search_query == "":
         return jsonify([]), 200
 
-    # Store all posts containing the search term.
     matching_posts = []
 
-    # Check every post loaded from posts.json.
+    # Search title, content, author, and date.
     for post in posts:
-        # Convert every searchable value into lowercase text.
-        #
-        # get() uses an empty string as a fallback if a field
-        # is unexpectedly missing from a stored post.
-        title = str(post.get("title", "")).lower()
-        content = str(post.get("content", "")).lower()
-        author = str(post.get("author", "")).lower()
-        date = str(post.get("date", "")).lower()
+        searchable_values = [
+            post["title"],
+            post["content"],
+            post["author"],
+            post["date"]
+        ]
 
-        # One matching field is enough to include the post.
-        if (
-            search_query in title
-            or search_query in content
-            or search_query in author
-            or search_query in date
+        if any(
+            search_query in value.lower()
+            for value in searchable_values
         ):
             matching_posts.append(post)
 
-    # An empty list is returned when no post matches.
     return jsonify(matching_posts), 200
 
 
@@ -304,13 +327,15 @@ def search_posts():
 def add_post():
     """Create a new blog post and save it in the JSON file."""
 
-    # Read the JSON data from the request body.
-    new_post_data = request.get_json(silent=True)
+    request_data = request.get_json(silent=True)
 
-    if new_post_data is None:
+    # The request body must contain a JSON object.
+    if not isinstance(request_data, dict):
         return jsonify({
-            "error": "Request body must contain JSON data."
+            "error": "Request body must contain a JSON object."
         }), 400
+
+    new_post_data: Post = request_data
 
     # All four fields are required for a new post.
     required_fields = [
@@ -320,17 +345,30 @@ def add_post():
         "date"
     ]
 
-    missing_fields = []
-
-    # Collect the names of all missing fields.
-    for field in required_fields:
-        if field not in new_post_data:
-            missing_fields.append(field)
+    missing_fields = [
+        field
+        for field in required_fields
+        if field not in new_post_data
+    ]
 
     if missing_fields:
         return jsonify({
             "error": "Missing required fields.",
             "missing_fields": missing_fields
+        }), 400
+
+    invalid_text_fields = get_invalid_text_fields(
+        new_post_data,
+        ["title", "content", "author"]
+    )
+
+    if invalid_text_fields:
+        return jsonify({
+            "error": (
+                "The following fields must contain non-empty text: "
+                + ", ".join(invalid_text_fields)
+                + "."
+            )
         }), 400
 
     # Validate the provided publication date.
@@ -350,19 +388,18 @@ def add_post():
             "error": load_error
         }), 500
 
-    # Create the complete new post.
+    # Create the complete new post. Outer spaces are removed
+    # from the text fields before they are stored.
     new_post = {
         "id": get_next_id(posts),
-        "title": new_post_data["title"],
-        "content": new_post_data["content"],
-        "author": new_post_data["author"],
+        "title": new_post_data["title"].strip(),
+        "content": new_post_data["content"].strip(),
+        "author": new_post_data["author"].strip(),
         "date": new_post_data["date"]
     }
 
-    # Add the new post to the loaded list.
     posts.append(new_post)
 
-    # Save the complete updated list.
     save_error = save_posts(posts)
 
     if save_error:
@@ -377,7 +414,6 @@ def add_post():
 def delete_post(post_id):
     """Delete a post and save the changed list."""
 
-    # Load the current posts from the JSON file.
     posts, load_error = load_posts()
 
     if load_error:
@@ -385,13 +421,10 @@ def delete_post(post_id):
             "error": load_error
         }), 500
 
-    # Search for the requested post.
     for post in posts:
         if post["id"] == post_id:
-            # Remove the matching post from the loaded list.
             posts.remove(post)
 
-            # Save the changed list to the JSON file.
             save_error = save_posts(posts)
 
             if save_error:
@@ -415,72 +448,77 @@ def delete_post(post_id):
 def update_post(post_id):
     """Update a post and save the changed data."""
 
-    # Load the latest posts from the JSON file.
     posts, load_error = load_posts()
 
-    # Stop the request if the file could not be loaded.
     if load_error:
         return jsonify({
             "error": load_error
         }), 500
 
-    # Search for the post with the requested ID.
     for post in posts:
-        if post["id"] == post_id:
-            # Read the optional values from the request body.
-            #
-            # An empty dictionary means that no fields will be changed.
-            update_data = request.get_json(silent=True) or {}
+        if post["id"] != post_id:
+            continue
 
-            # Validate the date before changing the post.
-            #
-            # The date is optional for an update. It is checked only
-            # when the client actually provides a new date.
-            if (
-                "date" in update_data
-                and not is_valid_date(update_data["date"])
-            ):
-                return jsonify({
-                    "error": (
-                        "The 'date' field must contain a valid date "
-                        "in YYYY-MM-DD format."
-                    )
-                }), 400
+        request_data = request.get_json(silent=True)
 
-            # Keep the current value when a field was not provided.
-            post["title"] = update_data.get(
-                "title",
-                post["title"]
-            )
+        # No JSON body means that no fields are changed.
+        if request_data is None:
+            update_data: Post = {}
 
-            post["content"] = update_data.get(
-                "content",
-                post["content"]
-            )
+        # Other JSON structures, such as lists and strings,
+        # cannot be used as an update object.
+        elif not isinstance(request_data, dict):
+            return jsonify({
+                "error": "Request body must contain a JSON object."
+            }), 400
 
-            post["author"] = update_data.get(
-                "author",
-                post["author"]
-            )
+        else:
+            update_data = request_data
 
-            post["date"] = update_data.get(
-                "date",
-                post["date"]
-            )
+        invalid_text_fields = get_invalid_text_fields(
+            update_data,
+            ["title", "content", "author"]
+        )
 
-            # Save the complete changed list in posts.json.
-            save_error = save_posts(posts)
+        if invalid_text_fields:
+            return jsonify({
+                "error": (
+                    "The following fields must contain non-empty text: "
+                    + ", ".join(invalid_text_fields)
+                    + "."
+                )
+            }), 400
 
-            # Return HTTP 500 if writing the file failed.
-            if save_error:
-                return jsonify({
-                    "error": save_error
-                }), 500
+        # The date is optional for an update and is checked only
+        # when the client provides a new value.
+        if (
+            "date" in update_data
+            and not is_valid_date(update_data["date"])
+        ):
+            return jsonify({
+                "error": (
+                    "The 'date' field must contain a valid date "
+                    "in YYYY-MM-DD format."
+                )
+            }), 400
 
-            # Return the complete updated post.
-            return jsonify(post), 200
+        # Keep the current value when a field was not provided.
+        for field in ["title", "content", "author"]:
+            if field in update_data:
+                post[field] = update_data[field].strip()
 
-    # This point is reached only when the ID does not exist.
+        if "date" in update_data:
+            post["date"] = update_data["date"]
+
+        save_error = save_posts(posts)
+
+        if save_error:
+            return jsonify({
+                "error": save_error
+            }), 500
+
+        return jsonify(post), 200
+
     return jsonify({
         "error": f"Post with id {post_id} was not found."
     }), 404

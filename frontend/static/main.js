@@ -142,13 +142,16 @@ function handleJsonResponse(response) {
 
             // The POST endpoint may additionally return a list
             // containing missing required fields.
+            // JSON responses may contain an optional missing_fields array.
+            var missingFields = data['missing_fields'];
+
             if (
-                data.missing_fields
-                && data.missing_fields.length > 0
+                Array.isArray(missingFields)
+                && missingFields.length > 0
             ) {
                 errorMessage += (
                     ' Missing fields: '
-                    + data.missing_fields.join(', ')
+                    + missingFields.join(', ')
                     + '.'
                 );
             }
@@ -174,36 +177,57 @@ function displayPosts(posts) {
     displayedPosts = posts;
 
     // Remove results from the previous request.
-    postContainer.innerHTML = '';
+    postContainer.replaceChildren();
 
     // Show a short notice when the list is empty.
     if (posts.length === 0) {
-        postContainer.innerHTML = '<p>No posts found.</p>';
+        var emptyMessage = document.createElement('p');
+        emptyMessage.textContent = 'No posts found.';
+        postContainer.appendChild(emptyMessage);
         return;
     }
 
     // Create one HTML element for every post.
+    //
+    // textContent is used for data returned by the API. This prevents
+    // entered HTML or JavaScript from being executed in the browser.
     posts.forEach(post => {
         var postDiv = document.createElement('div');
         postDiv.className = 'post';
 
-        postDiv.innerHTML = `
-            <h2>${post.title}</h2>
+        var title = document.createElement('h2');
+        title.textContent = post.title;
 
-            <p class="post-meta">
-                By ${post.author} · ${post.date}
-            </p>
+        var metadata = document.createElement('p');
+        metadata.className = 'post-meta';
+        metadata.textContent = (
+            'By ' + post.author + ' · ' + post.date
+        );
 
-            <p>${post.content}</p>
+        var content = document.createElement('p');
+        content.textContent = post.content;
 
-            <button onclick="startEditing(${post.id})">
-                Edit
-            </button>
+        var editButton = document.createElement('button');
+        editButton.type = 'button';
+        editButton.textContent = 'Edit';
+        editButton.addEventListener('click', function() {
+            startEditing(post.id);
+        });
 
-            <button onclick="deletePost(${post.id})">
-                Delete
-            </button>
-        `;
+        var deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Delete';
+        deleteButton.addEventListener('click', function() {
+            deletePost(post.id);
+        });
+
+        postDiv.append(
+            title,
+            metadata,
+            content,
+            editButton,
+            deleteButton
+        );
 
         postContainer.appendChild(postDiv);
     });
