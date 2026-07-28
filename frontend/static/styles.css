@@ -631,3 +631,346 @@ button[hidden],
         transition-duration: 0.01ms !important;
     }
 }
+
+
+/* =========================================================
+   TERMINAL / FREAK MODE SWITCH
+   ========================================================= */
+
+
+/* Place the title and mode switch next to each other. */
+.terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    margin-bottom: 34px;
+}
+
+
+/* The header controls the outer spacing now. */
+.terminal-header h1 {
+    margin: 0;
+}
+
+
+/* Compact switch inspired by a dark/light mode button. */
+.mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+
+    min-width: 112px;
+    min-height: 48px;
+    flex: 0 0 auto;
+
+    padding: 8px 13px;
+
+    color: var(--text-main);
+    border: 1px solid var(--border-default);
+    border-radius: 999px;
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(68, 255, 154, 0.09),
+            rgba(255, 255, 255, 0.025)
+        ),
+        var(--background-panel);
+
+    box-shadow:
+        inset 0 0 14px rgba(68, 255, 154, 0.035),
+        0 8px 24px rgba(0, 0, 0, 0.3);
+
+    font-size: 1rem;
+    letter-spacing: normal;
+    text-transform: none;
+}
+
+
+/* Keep the normal terminal side active by default. */
+.mode-toggle__terminal {
+    color: var(--neon-green);
+
+    font-family:
+        "SFMono-Regular",
+        Consolas,
+        "Liberation Mono",
+        Menlo,
+        monospace;
+
+    font-weight: 700;
+
+    text-shadow:
+        0 0 8px rgba(68, 255, 154, 0.75),
+        0 0 18px rgba(68, 255, 154, 0.26);
+
+    transition:
+        color 180ms ease,
+        opacity 180ms ease,
+        filter 180ms ease,
+        transform 180ms ease;
+}
+
+
+.mode-toggle__separator {
+    color: var(--text-muted);
+    opacity: 0.7;
+}
+
+
+/* The alien remains muted while terminal mode is active. */
+.mode-toggle__alien {
+    display: inline-block;
+
+    filter: grayscale(1);
+    opacity: 0.45;
+
+    font-size: 1.22rem;
+    line-height: 1;
+
+    transition:
+        filter 180ms ease,
+        opacity 180ms ease,
+        text-shadow 180ms ease,
+        transform 180ms ease;
+}
+
+
+.mode-toggle:hover {
+    color: var(--text-main);
+    border-color: var(--neon-green);
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(68, 255, 154, 0.16),
+            rgba(255, 255, 255, 0.035)
+        ),
+        var(--background-panel);
+
+    box-shadow:
+        var(--shadow-green),
+        0 10px 28px rgba(0, 0, 0, 0.34);
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   FREAK MODE
+   All rules are restricted to body.freak-mode.
+   The normal terminal design therefore remains unchanged.
+   ========================================================= */
+
+
+body.freak-mode {
+    --neon-green: #b6ff3f;
+    --neon-green-soft: rgba(182, 255, 63, 0.2);
+
+    --background-panel: rgba(17, 7, 24, 0.93);
+    --background-input: rgba(10, 3, 15, 0.92);
+
+    --border-default: rgba(182, 255, 63, 0.48);
+    --border-muted: rgba(191, 173, 209, 0.28);
+
+    --shadow-green:
+        0 0 12px rgba(182, 255, 63, 0.46),
+        0 0 30px rgba(182, 255, 63, 0.17);
+
+    background:
+        radial-gradient(
+            circle at 18% 14%,
+            rgba(255, 37, 190, 0.2),
+            transparent 31%
+        ),
+        radial-gradient(
+            circle at 82% 22%,
+            rgba(36, 255, 221, 0.16),
+            transparent 31%
+        ),
+        radial-gradient(
+            circle at 50% 88%,
+            rgba(126, 55, 255, 0.19),
+            transparent 34%
+        ),
+        linear-gradient(
+            135deg,
+            #030006 0%,
+            #0c0311 50%,
+            #00100d 100%
+        );
+}
+
+
+/* Make the background grid more active in freak mode. */
+body.freak-mode::after {
+    opacity: 0.28;
+    background-size: 36px 36px;
+
+    animation: freak-grid-drift 8s linear infinite;
+}
+
+
+/* Slightly stronger CRT scanlines. */
+body.freak-mode::before {
+    opacity: 0.24;
+}
+
+
+/* The terminal side becomes inactive. */
+body.freak-mode .mode-toggle__terminal {
+    color: var(--text-muted);
+
+    filter: grayscale(1);
+    opacity: 0.38;
+    text-shadow: none;
+}
+
+
+/* The alien becomes the active side of the switch. */
+body.freak-mode .mode-toggle__alien {
+    filter: grayscale(0) saturate(1.35);
+    opacity: 1;
+
+    text-shadow:
+        0 0 8px rgba(182, 255, 63, 0.9),
+        0 0 20px rgba(182, 255, 63, 0.42);
+
+    transform:
+        translateY(-1px)
+        scale(1.12);
+}
+
+
+/* Give the main title a controlled glitch effect. */
+body.freak-mode h1 {
+    text-shadow:
+        -2px 0 rgba(255, 37, 190, 0.76),
+        2px 0 rgba(36, 255, 221, 0.72),
+        0 0 20px rgba(182, 255, 63, 0.48);
+
+    animation: freak-title-glitch 3.8s infinite;
+}
+
+
+/* Alter the record label only in freak mode. */
+body.freak-mode .post::before {
+    content: "ALIEN RECORD";
+
+    background:
+        linear-gradient(
+            90deg,
+            var(--neon-green),
+            #eaff72
+        );
+}
+
+
+/* Alternate card angles to create controlled visual chaos. */
+body.freak-mode .post:nth-child(odd) {
+    transform: rotate(-0.35deg);
+}
+
+
+body.freak-mode .post:nth-child(even) {
+    transform: rotate(0.35deg);
+}
+
+
+body.freak-mode .post:hover {
+    transform:
+        translateY(-4px)
+        rotate(0deg)
+        scale(1.008);
+
+    box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.48),
+        0 0 15px rgba(182, 255, 63, 0.38),
+        0 0 34px rgba(255, 37, 190, 0.12);
+}
+
+
+/* Slightly more unusual panel borders in freak mode. */
+body.freak-mode .input-field {
+    border-left-width: 6px;
+
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.4),
+        inset 0 0 22px rgba(182, 255, 63, 0.045),
+        0 0 20px rgba(126, 55, 255, 0.06);
+}
+
+
+/* Animated background-grid movement. */
+@keyframes freak-grid-drift {
+    from {
+        background-position: 0 0;
+    }
+
+    to {
+        background-position: 36px 36px;
+    }
+}
+
+
+/* Short, occasional title displacement. */
+@keyframes freak-title-glitch {
+    0%,
+    88%,
+    100% {
+        transform: translate(0);
+    }
+
+    89% {
+        transform: translate(-2px, 1px);
+    }
+
+    90% {
+        transform: translate(2px, -1px);
+    }
+
+    91% {
+        transform: translate(-1px, 0);
+    }
+
+    92% {
+        transform: translate(0);
+    }
+}
+
+
+/* Keep the header usable on smaller screens. */
+@media (max-width: 760px) {
+    .terminal-header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .mode-toggle {
+        align-self: flex-end;
+    }
+
+    body.freak-mode .post:nth-child(odd),
+    body.freak-mode .post:nth-child(even) {
+        transform: none;
+    }
+}
+
+
+/* Disable all added freak-mode motion when requested. */
+@media (prefers-reduced-motion: reduce) {
+    body.freak-mode::after,
+    body.freak-mode h1 {
+        animation: none !important;
+    }
+
+    body.freak-mode .post:nth-child(odd),
+    body.freak-mode .post:nth-child(even),
+    body.freak-mode .post:hover {
+        transform: none;
+    }
+}

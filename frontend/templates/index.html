@@ -8,7 +8,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Blog Posts</title>
+    <title>Masterblog API</title>
 
     <link
         href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap"
@@ -17,13 +17,40 @@
 
     <link
         rel="stylesheet"
-        href="static/styles.css"
+        href="static/styles.css?v=3"
     >
 </head>
 
 <body>
     <div class="container">
-        <h1>MASTERBLOG_API</h1>
+        <header class="terminal-header">
+            <h1>MASTERBLOG_API</h1>
+
+            <button
+                type="button"
+                id="mode-toggle"
+                class="mode-toggle"
+                onclick="toggleDisplayMode()"
+                aria-pressed="false"
+                aria-label="Switch to freak mode"
+                title="Switch between terminal and freak mode"
+            >
+                <span class="mode-toggle__terminal">
+                    &gt;_
+                </span>
+
+                <span class="mode-toggle__separator">
+                    /
+                </span>
+
+                <span
+                    class="mode-toggle__alien"
+                    aria-hidden="true"
+                >
+                    👽
+                </span>
+            </button>
+        </header>
 
         <div class="input-field">
             <input
@@ -33,7 +60,10 @@
                 value="http://127.0.0.1:5002/api"
             >
 
-            <button onclick="loadPosts()">
+            <button
+                type="button"
+                onclick="loadPosts()"
+            >
                 Load Posts
             </button>
         </div>
@@ -45,11 +75,17 @@
                 placeholder="Search title, content, author, or date"
             >
 
-            <button onclick="searchPosts()">
+            <button
+                type="button"
+                onclick="searchPosts()"
+            >
                 Search
             </button>
 
-            <button onclick="clearSearch()">
+            <button
+                type="button"
+                onclick="clearSearch()"
+            >
                 Clear Search
             </button>
         </div>
@@ -87,11 +123,17 @@
                 </option>
             </select>
 
-            <button onclick="sortPosts()">
+            <button
+                type="button"
+                onclick="sortPosts()"
+            >
                 Sort Posts
             </button>
 
-            <button onclick="clearSorting()">
+            <button
+                type="button"
+                onclick="clearSorting()"
+            >
                 Clear Sorting
             </button>
         </div>
@@ -126,6 +168,7 @@
             >
 
             <button
+                type="button"
                 id="add-post-button"
                 onclick="addPost()"
             >
@@ -133,6 +176,7 @@
             </button>
 
             <button
+                type="button"
                 id="update-post-button"
                 onclick="updatePost()"
                 hidden
@@ -141,6 +185,7 @@
             </button>
 
             <button
+                type="button"
                 id="cancel-edit-button"
                 onclick="cancelEditing()"
                 hidden
@@ -161,6 +206,6 @@
         </div>
     </div>
 
-    <script src="static/main.js?v=2"></script>
+    <script src="static/main.js?v=3"></script>
 </body>
 </html>

@@ -7,6 +7,9 @@ var displayedPosts = [];
 
 // Function that runs once the window is fully loaded.
 window.onload = function() {
+    // Restore the previously selected display mode.
+    initializeDisplayMode();
+
     // Attempt to retrieve the API base URL from local storage.
     var savedBaseUrl = localStorage.getItem('apiBaseUrl');
 
@@ -26,6 +29,88 @@ window.onload = function() {
         }
     });
 };
+
+
+// Restore the saved display mode when the page is opened.
+function initializeDisplayMode() {
+    var savedDisplayMode = localStorage.getItem(
+        'displayMode'
+    );
+
+    // Freak mode is restored only when it was selected before.
+    // Otherwise, terminal mode remains the default.
+    if (savedDisplayMode === 'freak') {
+        setDisplayMode('freak');
+    } else {
+        setDisplayMode('terminal');
+    }
+}
+
+
+// Apply the selected mode to the page.
+function setDisplayMode(displayMode) {
+    var freakModeEnabled = displayMode === 'freak';
+
+    // Add or remove the freak-mode class on the body element.
+    document.body.classList.toggle(
+        'freak-mode',
+        freakModeEnabled
+    );
+
+    var modeToggle = document.getElementById(
+        'mode-toggle'
+    );
+
+    // aria-pressed communicates the switch state
+    // to assistive technologies.
+    modeToggle.setAttribute(
+        'aria-pressed',
+        String(freakModeEnabled)
+    );
+
+    // Update the accessible description of the button.
+    if (freakModeEnabled) {
+        modeToggle.setAttribute(
+            'aria-label',
+            'Switch to terminal mode'
+        );
+    } else {
+        modeToggle.setAttribute(
+            'aria-label',
+            'Switch to freak mode'
+        );
+    }
+
+    // Remember the selected mode for the next page visit.
+    localStorage.setItem(
+        'displayMode',
+        displayMode
+    );
+}
+
+
+// Switch between terminal mode and freak mode.
+function toggleDisplayMode() {
+    var freakModeIsActive = document.body.classList.contains(
+        'freak-mode'
+    );
+
+    if (freakModeIsActive) {
+        setDisplayMode('terminal');
+
+        showMessage(
+            'Terminal mode activated.',
+            'success'
+        );
+    } else {
+        setDisplayMode('freak');
+
+        showMessage(
+            'Freak mode activated.',
+            'success'
+        );
+    }
+}
 
 
 // Display a visible status message on the page.
