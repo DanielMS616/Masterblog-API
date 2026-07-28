@@ -1,30 +1,58 @@
 [
     {
+        "id": 1,
+        "title": "Should a Blog API Start Simple?",
+        "content": "I think a first API should begin with only the essential CRUD operations. A small and understandable structure makes it easier to learn how requests, responses, routes, and JSON data work together.",
+        "author": "Daniel",
+        "date": "2026-07-21"
+    },
+    {
         "id": 2,
-        "title": "2. Second postt",
-        "content": "This is the second post...",
+        "title": "HTTP Status Codes Are Part of the API",
+        "content": "A successful response is not only about returning JSON. Status codes such as 200, 201, 400, 404, and 500 tell the client what happened and make errors much easier to handle correctly.",
+        "author": "Josiii",
+        "date": "2026-07-22"
+    },
+    {
+        "id": 3,
+        "title": "Is a JSON File Enough for Persistence?",
+        "content": "For a school project, a JSON file is a useful introduction to persistent storage. It survives a server restart and is easy to inspect, although a real production application would normally use a database.",
+        "author": "Patrick",
+        "date": "2026-07-23"
+    },
+    {
+        "id": 4,
+        "title": "Validation Belongs in the Backend",
+        "content": "The frontend can prevent empty form submissions, but the backend must still validate every request. Clients can be changed or bypassed, so the API remains responsible for protecting its own data.",
+        "author": "Leonie",
+        "date": "2026-07-24"
+    },
+    {
+        "id": 5,
+        "title": "Swagger Makes an API Easier to Understand",
+        "content": "Swagger documentation turns the available routes, parameters, request bodies, and responses into an interactive reference. It also helps reveal when the documentation and the actual backend no longer match.",
+        "author": "Daniel",
+        "date": "2026-07-25"
+    },
+    {
+        "id": 6,
+        "title": "Should the Frontend Trust Every API Response?",
+        "content": "No. The frontend should check whether a response was successful before using its data. Visible error messages are also more useful to users than errors that appear only inside the browser console.",
+        "author": "Torben",
+        "date": "2026-07-26"
+    },
+    {
+        "id": 7,
+        "title": "Search and Sorting: Frontend or Backend?",
+        "content": "For this project, search and sorting are handled by the backend. This keeps the API responsible for the data logic and allows different clients to request the same filtered or ordered results.",
         "author": "Josiii",
         "date": "2026-07-27"
     },
     {
-        "id": 4,
-        "title": "Swagger documentation test",
-        "content": "This post tests the final Swagger definition.",
-        "author": "DanielMS616",
-        "date": "2026-07-29"
-    },
-    {
-        "id": 5,
-        "title": "Frontend integration",
-        "content": "The Add Post button now sends all required fields.",
-        "author": "DD",
-        "date": "2026-03-26"
-    },
-    {
-        "id": 6,
-        "title": "Second Poscht",
-        "content": "poscht content",
-        "author": "Josii",
-        "date": "2026-07-27"
+        "id": 8,
+        "title": "From School Project to Production API",
+        "content": "The next steps would include a database, automated tests, authentication, pagination, logging, and safer concurrent writes. The current project already demonstrates the core relationship between a Flask API and a JavaScript client.",
+        "author": "Daniel",
+        "date": "2026-07-28"
     }
 ]
