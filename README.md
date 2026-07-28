@@ -157,14 +157,14 @@ backend/static/masterblog.json
 
 ## API endpoints
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/posts` | Return all posts |
-| `GET` | `/api/posts?sort=<field>&direction=<asc|desc>` | Return sorted posts |
-| `GET` | `/api/posts/search?search=<term>` | Search all supported post fields |
-| `POST` | `/api/posts` | Create a new post |
-| `PUT` | `/api/posts/<post_id>` | Update an existing post |
-| `DELETE` | `/api/posts/<post_id>` | Delete an existing post |
+| Method | Endpoint                                       | Description |
+|---|------------------------------------------------|---|
+| `GET` | `/api/posts`                                   | Return all posts |
+| `GET` | `/api/posts?sort=<field>&direction=<asc/desc>` | Return sorted posts |
+| `GET` | `/api/posts/search?search=<term>`              | Search all supported post fields |
+| `POST` | `/api/posts`                                   | Create a new post |
+| `PUT` | `/api/posts/<post_id>`                         | Update an existing post |
+| `DELETE` | `/api/posts/<post_id>`                         | Delete an existing post |
 
 ### Supported sort fields
 
@@ -326,20 +326,6 @@ python3 -m json.tool backend/posts.json > /dev/null
 python3 -m json.tool backend/static/masterblog.json > /dev/null
 python3 -m pip check
 ```
-
-## Codio submission
-
-Start the backend in Codio with:
-
-```bash
-python3 backend/backend_app.py
-```
-
-Open the Flask application through Codio's application button.
-
-Then run the frontend locally and enter the public Codio API base URL into the frontend's API URL field.
-
-Do not change the backend port from `5002`.
 
 ## Possible next steps
 
